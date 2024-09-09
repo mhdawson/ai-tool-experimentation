@@ -128,9 +128,10 @@ async function handleResponse(messages, response) {
 
 // the model to use
 //const model = 'mistral-nemo';
-const model = 'mistral';
+//const model = 'mistral';
 //const model = 'llama3.1';
 //const model = 'firefunction-v2';
+const model = 'hermes3';
 
 const questions = ['What is my favorite color?', 
                    'My city is Ottawa',
