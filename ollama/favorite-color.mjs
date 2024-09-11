@@ -1,6 +1,14 @@
-import ollama from 'ollama';
-
+import { Ollama } from 'ollama';
 import { inspect } from 'node:util'
+import { Agent } from 'undici'
+
+const noTimeoutFetch = (input, init) => {
+  const someInit = init || {}
+  return fetch(input, { ...someInit, dispatcher: new Agent({ headersTimeout: 2700000 }) })
+}
+
+const REMOTE_HOST = '10.1.2.38:11434';
+const ollama = new Ollama({ host: REMOTE_HOST,  fetch: noTimeoutFetch })
 
 const verbose = false;
 
@@ -129,9 +137,10 @@ async function handleResponse(messages, response) {
 // the model to use
 //const model = 'mistral-nemo';
 //const model = 'mistral';
-//const model = 'llama3.1';
+const model = 'llama3.1';
 //const model = 'firefunction-v2';
-const model = 'hermes3';
+//const model = 'llama3.1:70b-instruct-q4_K_M';
+//const model = 'hermes3';
 
 const questions = ['What is my favorite color?', 
                    'My city is Ottawa',
