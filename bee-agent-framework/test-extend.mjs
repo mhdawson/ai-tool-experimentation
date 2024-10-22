@@ -7,11 +7,15 @@ import { DynamicTool, StringToolOutput } from 'bee-agent-framework/tools/base';
 import { z } from 'zod';
 import { Agent } from 'undici';
 import { BaseMessage } from "bee-agent-framework/llms/primitives/message";
+import {
+  BeeSystemPrompt,
+} from "bee-agent-framework/agents/bee/prompts";
+import {PromptTemplate} from "bee-agent-framework/template";
 
 const OLLAMA_SERVER = 'http://10.1.2.38:11434';
 const MODEL = 'llama3.1';
 const CHECK_FUNCIONS_RELEVANCE = true;
-const SHOW_AGENT_PROCESS = true; 
+const SHOW_AGENT_PROCESS = false; 
 
 const noTimeoutFetch = (input, init) => {
   const someInit = init || {}
@@ -23,6 +27,9 @@ const noTimeoutFetch = (input, init) => {
 
 const llm = new OllamaChatLLM({
   modelId: MODEL,
+  parameters: {
+    temperature: 0,
+  },
   client: new Ollama({
     host: OLLAMA_SERVER,
     fetch: noTimeoutFetch
@@ -95,82 +102,91 @@ const FavoriteHockeyTool = new DynamicTool({
 
 const availableTools = [FavoriteColorTool, FavoriteHockeyTool];
 
-
-///////////////////////////////////////////////////////////////
-// agent to determine if available functions are relevant to the
-// question
-const funcsRelevantArr = [
-  `based only the following tool descriptions answer yes if the tool
-   is relevant to answering the question or no otherwise`];
-for(let i in availableTools) {
-  funcsRelevantArr.push(`-description ${i}: ${availableTools[i].description}`);
-};
-const functionsRelevantPrompt = funcsRelevantArr.join('\n');
-
-let checkToolAgent = new BeeAgent({
-  llm,
-  memory: new TokenMemory({ llm }), 
-  tools: [],
-});
-
-async function functionsRelevant(question, messages) {
-  checkToolAgent.memory.reset();
-  checkToolAgent.memory.addMany(messages);
-  const result = await checkToolAgent 
-    .run({ prompt: `${functionsRelevantPrompt}\n-question: ${question}` 
-         },
-         { execution: {
-                        maxRetriesPerStep: 5,
-                        totalMaxRetries: 5,
-                        maxIterations: 5 }}
-    );
-  if (result.result.text === 'No') {
-    return false;
-  }
-  return true;  
-};
-
-
 /////////////////////////////////////
 // agents that we'll use to answer users questions
 // one has the functions available the other does not
 
-const additionalInstructions = new BaseMessage('system', `#Additional Instructions\n
-  If no function is documented to answer the question being asked
-  do not call any functions and answer using your trained knowledge`);
+class ExtendedBeeAgent extends BeeAgent {
 
-const sharedMemory = new TokenMemory({ llm });
-sharedMemory.add(additionalInstructions);
+  constructor(input) {
+    super(input);
+    const funcsRelevantArr = [
+      `Based only on the descriptions in this request answer Yes if one of the functions described might
+       be able to answer the question. Only respond with Yes or No.`];
+    for(let i in availableTools) {
+      funcsRelevantArr.push(`- description ${i}: ${input.tools[i].description}`);
+    };
+    this.functionsRelevantPrompt = funcsRelevantArr.join('\n');
 
-let noToolAgent = new BeeAgent({
+    this.checkToolAgent = new BeeAgent({
+      llm: input.llm,
+      memory: new TokenMemory({ llm: input.llm }), 
+      tools: [],
+    });
+
+    this.noToolsPrompt =  new PromptTemplate({
+      schema: z.object({
+        instructions: z.string().default('You are a helpful assistant'),
+        tools: z.array(
+          z
+            .object({
+              name: z.string().min(1),
+              description: z.string().min(1),
+              schema: z.string().min(1),
+            })
+            .passthrough(),
+        ),
+      }),
+      template: 'You are a helpful assistant, answer questions based on your trained knowledge',
+    });
+
+    this.originalTemplates = this.input.templates;
+  };
+
+  async functionsRelevant(question, messages) {
+    this.checkToolAgent.memory.reset();
+    this.checkToolAgent.memory.addMany(messages);
+    const result = await this.checkToolAgent 
+      .run({ prompt: `${this.functionsRelevantPrompt}\n- question: ${question}` 
+           },
+           { execution: {
+                          maxRetriesPerStep: 5,
+                          totalMaxRetries: 5,
+                          maxIterations: 5 }}
+      );
+    if (result.result.text === 'No') {
+      return false;
+    }
+    return true;  
+  };
+
+  async _run(input, options, run) {
+    if (CHECK_FUNCIONS_RELEVANCE) {
+      const useFunctions = await this.functionsRelevant(input.prompt, this.memory.messages); 
+      if (!useFunctions) {
+        if (!this.input.templates)
+          this.input.templates = {};
+        this.input.templates.system = this.noToolsPrompt;
+      }
+    };
+
+    const result = await super._run(input, options, run);
+    this.input.templates = this.originalTemplates;
+    return result;
+  }
+}
+
+/////////////////////////////////////
+// Use agent to ask questions
+
+let agent = new ExtendedBeeAgent({
   llm,
-  memory: sharedMemory,
-  tools: [],
-});
-
-let agent = new BeeAgent({
-  llm,
-  memory: sharedMemory,
+  memory: new TokenMemory({ llm }),
   tools: availableTools,
 });
 
 // Ask a question using the bee agent framework
 async function askQuestion(question) {
-  if (CHECK_FUNCIONS_RELEVANCE && !(await functionsRelevant(question, agent.memory.messages))) {
-    // don't use the agent as the functions we have are not relevant to the question
-    agent.memory.add(BaseMessage.of({
-        role: 'user',
-        text: question,
-    }));
-    const response = await llm.generate(agent.memory.messages);
-    agent.memory.add(BaseMessage.of({
-        role: 'assistant',
-        text: response.getTextContent(),
-    }));
-    return ({ result: { text: response.getTextContent() } });
-  };
-
-  // use the agent with the available functions
   return agent  
     .run({ prompt: question },
          { execution: {
