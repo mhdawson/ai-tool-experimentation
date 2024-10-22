@@ -13,7 +13,7 @@ import {
 import {PromptTemplate} from "bee-agent-framework/template";
 
 const OLLAMA_SERVER = 'http://10.1.2.38:11434';
-const MODEL = 'llama3.1';
+const MODEL = 'llama3.1:8b';
 const CHECK_FUNCIONS_RELEVANCE = true;
 const SHOW_AGENT_PROCESS = false; 
 
@@ -164,14 +164,22 @@ class ExtendedBeeAgent extends BeeAgent {
     if (CHECK_FUNCIONS_RELEVANCE) {
       const useFunctions = await this.functionsRelevant(input.prompt, this.memory.messages); 
       if (!useFunctions) {
+        // modifying the state of the agent is not ideal but works
+        // because the agent only allows one request to be executing
+        // at a time.
         if (!this.input.templates)
           this.input.templates = {};
         this.input.templates.system = this.noToolsPrompt;
       }
     };
 
-    const result = await super._run(input, options, run);
-    this.input.templates = this.originalTemplates;
+    let result;
+    try {
+      result = await super._run(input, options, run);
+    } finally {
+      // restore the modified state
+      this.input.templates = this.originalTemplates;
+    }
     return result;
   }
 }
