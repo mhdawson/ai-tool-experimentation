@@ -1,0 +1,21 @@
+{
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.1.1",
+    "bee-agent-framework": "^0.0.57",
+    "ollama": "^0.5.12",
+    "typescript": "^5.6.3",
+    "undici": "^7.2.3"
+  },
+  "name": "experiment-with-mcp",
+  "version": "0.0.1",
+  "description": "experimentation with mcp and bee agent framework",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node test-mcp.mjs",
+    "build": "cd favorite-server && npm isntall && npm run build",
+    "clean": "rm -rf node_modules && rm -rf src/dist && rm -rf favorite-server/build && rm -rf favorite-server/node_modules"
+  },
+  "author": "Michael Dawson",
+  "license": "MIT"
+}
