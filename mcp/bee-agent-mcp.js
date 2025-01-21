@@ -8,7 +8,8 @@ import { MCPTool } from "bee-agent-framework/tools/mcp";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 
 const OLLAMA_SERVER = 'http://10.1.2.38:11434';
-const MODEL = 'llama3.1:8b';
+const MODEL = 'granite3.1-dense';
+//const MODEL = 'llama3.1';
 const SHOW_AGENT_PROCESS = false;
 
 const noTimeoutFetch = (input, init) => {
