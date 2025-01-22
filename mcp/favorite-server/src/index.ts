@@ -1,22 +1,22 @@
 #!/usr/bin/env node
 
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
-} from "@modelcontextprotocol/sdk/types.js";
+} from '@modelcontextprotocol/sdk/types.js';
 
 const server = new Server(
   {
-    name: "favorite-server",
-    version: "0.1.0",
+    name: 'favorite-server',
+    version: '0.1.0',
   },
   {
     capabilities: {
       tools: {},
     },
-  }
+  },
 );
 
 // handler that returns list of available tools
@@ -24,50 +24,53 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
     tools: [
       {
-        name: "favorite_color_tool",
-        description: "returns the favorite color for person given their City and Country",
+        name: 'favorite_color_tool',
+        description:
+          'returns the favorite color for person given their City and Country',
         inputSchema: {
-          type: "object",
+          type: 'object',
           properties: {
             city: {
-              type: "string",
-              description: "the city for the person"
+              type: 'string',
+              description: 'the city for the person',
             },
             country: {
-              type: "string",
-              description: "the country for the person"
-            }
+              type: 'string',
+              description: 'the country for the person',
+            },
           },
-          required: ["city", "country"]
-        }
+          required: ['city', 'country'],
+        },
       },
       {
-        name: "favorite_hockey_tool",
-        description: "returns the favorite hockey team for a person given their City and Country",
+        name: 'favorite_hockey_tool',
+        description:
+          'returns the favorite hockey team for a person given their City and Country',
         inputSchema: {
-          type: "object",
+          type: 'object',
           properties: {
             city: {
-              type: "string",
-              description: "the city for the person"
+              type: 'string',
+              description: 'the city for the person',
             },
             country: {
-              type: "string",
-              description: "the country for the person"
-            }
+              type: 'string',
+              description: 'the country for the person',
+            },
           },
-          required: ["city", "country"]
-        }
-      }
+          required: ['city', 'country'],
+        },
+      },
     ],
   };
 });
 
 // handler that invokes appropriate tool when called
-server.setRequestHandler(CallToolRequestSchema, async (request) => {
-  if (request.params.name === 'favorite_color_tool' || 
-      request.params.name === 'favorite_hockey_tool' ) { 
-
+server.setRequestHandler(CallToolRequestSchema, async request => {
+  if (
+    request.params.name === 'favorite_color_tool' ||
+    request.params.name === 'favorite_hockey_tool'
+  ) {
     let text = `the ${request.params.name} returned the city or country was not valid
                 please ask the user for them`;
 
@@ -76,28 +79,34 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
     if (city && country) {
       if (request.params.name === 'favorite_color_tool') {
-          if ((city === 'Ottawa') && (country === 'Canada')) {
-            text = 'the favorite_color_tool returned that the favorite color for Ottawa Canada is black';
-          } else if ((city === 'Montreal') && (country === 'Canada')) {
-            text = 'the favorite_color_tool returned that the favorite color for Montreal Canada is red';
-          }
-        } else if (request.params.name === 'favorite_hockey_tool') {
-          if ((city === 'Ottawa') && (country === 'Canada')) {
-            text = 'the favorite_hockey_tool returned that the favorite hockey team for Ottawa Canada is The Ottawa Senators';
-          } else if ((city === 'Montreal') && (country === 'Canada')) {
-            text = 'the favorite_hockey_tool returned that the favorite hockey team for Montreal Canada is the Montreal Canadians';
-          }
-      };
+        if (city === 'Ottawa' && country === 'Canada') {
+          text =
+            'the favorite_color_tool returned that the favorite color for Ottawa Canada is black';
+        } else if (city === 'Montreal' && country === 'Canada') {
+          text =
+            'the favorite_color_tool returned that the favorite color for Montreal Canada is red';
+        }
+      } else if (request.params.name === 'favorite_hockey_tool') {
+        if (city === 'Ottawa' && country === 'Canada') {
+          text =
+            'the favorite_hockey_tool returned that the favorite hockey team for Ottawa Canada is The Ottawa Senators';
+        } else if (city === 'Montreal' && country === 'Canada') {
+          text =
+            'the favorite_hockey_tool returned that the favorite hockey team for Montreal Canada is the Montreal Canadians';
+        }
+      }
     }
 
     return {
-      content: [{
-        type: 'text',
-        text: text
-      }]
+      content: [
+        {
+          type: 'text',
+          text: text,
+        },
+      ],
     };
   } else {
-    throw new Error("Unknown tool");
+    throw new Error('Unknown tool');
   }
 });
 
@@ -106,7 +115,7 @@ async function main() {
   await server.connect(transport);
 }
 
-main().catch((error) => {
-  console.error("Server error:", error);
+main().catch(error => {
+  console.error('Server error:', error);
   process.exit(1);
 });
