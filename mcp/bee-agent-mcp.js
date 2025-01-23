@@ -65,7 +65,7 @@ let agent = new BeeAgent({
 
 // Ask a question using the bee agent framework
 async function askQuestion(question) {
-  return agent
+  const response = await agent
     .run(
       { prompt: question },
       {
@@ -83,8 +83,10 @@ async function askQuestion(question) {
         }
       });
     });
+  return response.result.text;
 }
 
+// Go through the question flow
 const questions = [
   'What is my favorite color?',
   'My city is Ottawa',
@@ -100,7 +102,7 @@ const questions = [
 
 for (let i = 0; i < questions.length; i++) {
   console.log('QUESTION: ' + questions[i]);
-  console.log('  RESPONSE:' + (await askQuestion(questions[i])).result.text);
+  console.log('  RESPONSE:' + (await askQuestion(questions[i])));
 }
 
 client.close();

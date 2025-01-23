@@ -108,19 +108,6 @@ async function handleResponse(messages, response) {
 // the model to use
 const model = 'llama3.1';
 
-const questions = [
-  'What is my favorite color?',
-  'My city is Ottawa',
-  'My country is Canada',
-  'I moved to Montreal. What is my favorite color now?',
-  'My city is Montreal and my country is Canada',
-  'What is the fastest car in the world?',
-  'My city is Ottawa and my country is Canada, what is my favorite color?',
-  'What is my favorite hockey team ?',
-  'My city is Montreal and my country is Canada',
-  'Who was the first president of the United States?',
-];
-
 // maintains chat history
 const messages = [
   {
@@ -139,18 +126,35 @@ const messages = [
   { role: 'system', content: 'Give short answers when possible' },
 ];
 
-for (let i = 0; i < questions.length; i++) {
-  console.log('QUESTION: ' + questions[i]);
-  messages.push({ role: 'user', content: questions[i] });
+// Ask a question using ollama
+async function askQuestion(question) {
+  messages.push({ role: 'user', content: question });
   const response = await ollama.chat({
     model: model,
     messages: messages,
     tools: availableTools,
     options: ollamaOptions,
   });
-  console.log(
-    '  RESPONSE:' + (await handleResponse(messages, response)).message.content,
-  );
+  return (await handleResponse(messages, response)).message.content;
+}
+
+// Go through the question flow
+const questions = [
+  'What is my favorite color?',
+  'My city is Ottawa',
+  'My country is Canada',
+  'I moved to Montreal. What is my favorite color now?',
+  'My city is Montreal and my country is Canada',
+  'What is the fastest car in the world?',
+  'My city is Ottawa and my country is Canada, what is my favorite color?',
+  'What is my favorite hockey team ?',
+  'My city is Montreal and my country is Canada',
+  'Who was the first president of the United States?',
+];
+
+for (let i = 0; i < questions.length; i++) {
+  console.log('QUESTION: ' + questions[i]);
+  console.log('  RESPONSE:' + (await askQuestion(questions[i])));
 }
 
 client.close();
