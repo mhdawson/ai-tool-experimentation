@@ -1,5 +1,6 @@
 import { BeeAgent } from 'bee-agent-framework/agents/bee/agent';
 import { OllamaChatLLM } from 'bee-agent-framework/adapters/ollama/chat';
+import { OpenAIChatLLM } from 'bee-agent-framework/adapters/openai/chat';
 import { TokenMemory } from 'bee-agent-framework/memory/tokenMemory';
 import { Ollama } from 'ollama';
 import { Agent } from 'undici';
@@ -20,7 +21,6 @@ const noTimeoutFetch = (input, init) => {
 
 /////////////////////////////////////
 // LLM that we'll use
-
 const llm = new OllamaChatLLM({
   modelId: MODEL,
   parameters: {
@@ -31,6 +31,17 @@ const llm = new OllamaChatLLM({
     fetch: noTimeoutFetch,
   }),
 });
+
+/*
+const llm = new OpenAIChatLLM({
+  modelId: "gpt-4o-mini",
+//  azure: true,
+  parameters: {
+    max_tokens: 10,
+    stop: ["post"],
+  },
+});
+*/
 
 // Create agent
 let agent = new BeeAgent({
