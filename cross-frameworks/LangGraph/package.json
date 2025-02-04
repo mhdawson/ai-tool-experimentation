@@ -1,26 +1,25 @@
 {
   "dependencies": {
-    "bee-agent-framework": "^0.0.57",
-    "ollama": "^0.5.12",
-    "openai": "^4.82.0",
-    "openai-chat-tokens": "^0.2.8",
+    "@langchain/community": "^0.3.28",
+    "@langchain/core": "^0.3.37",
+    "@langchain/langgraph": "^0.2.44",
+    "@langchain/ollama": "^0.1.5",
+    "duck-duck-scrape": "^2.2.7",
     "prettier": "^3.4.2",
     "typescript": "^5.6.3",
     "undici": "^7.2.3"
   },
-  "name": "experiment-with-bee-agent-framework",
+  "name": "experiment-with-langgraph-agent-framework",
   "version": "0.0.1",
-  "description": "experimentation with bee agent framework",
-  "main": "index.js",
+  "description": "Experimentation with LangGraph agent framework",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node test.mjs",
-    "build": "tsc --p ./src",
     "format:check": "prettier --check \"*.{ts,js,mjs}\"",
     "format:fix": "prettier --write \"*.{ts,js,mjs}\"",
     "lint:check": "eslint . --cache",
     "lint:fix": "eslint . --cache --fix",
-    "clean": "rm -rf node_modules && rm -rf src/dist"
+    "clean": "rm -rf node_modules"
   },
   "author": "Michael Dawson",
   "license": "MIT",

@@ -1,15 +1,16 @@
 import { BeeAgent } from 'bee-agent-framework/agents/bee/agent';
 import { OllamaChatLLM } from 'bee-agent-framework/adapters/ollama/chat';
-import { OpenAIChatLLM } from 'bee-agent-framework/adapters/openai/chat';
+//import { OpenAIChatLLM } from 'bee-agent-framework/adapters/openai/chat';
 import { TokenMemory } from 'bee-agent-framework/memory/tokenMemory';
 import { Ollama } from 'ollama';
 import { Agent } from 'undici';
 import { DuckDuckGoSearchTool } from 'bee-agent-framework/tools/search/duckDuckGoSearch';
 
 const OLLAMA_SERVER = 'http://10.1.2.38:11434';
-const MODEL = 'granite3.1-dense';
-//const MODEL = 'llama3.1';
-const SHOW_AGENT_PROCESS = false;
+//const MODEL = 'granite3.1-dense';
+const MODEL = 'llama3.1';
+//const MODEL = 'qwen2.5-coder:32b';
+const SHOW_AGENT_PROCESS = true;
 
 const noTimeoutFetch = (input, init) => {
   const someInit = init || {};
@@ -47,7 +48,9 @@ const llm = new OpenAIChatLLM({
 let agent = new BeeAgent({
   llm,
   memory: new TokenMemory({ llm }),
-  tools: [new DuckDuckGoSearchTool()],
+  tools: [
+    new DuckDuckGoSearchTool({ maxResults: 3, throttle: { interval: 1000 } }),
+  ],
 });
 
 // Ask a question using the bee agent framework
@@ -74,8 +77,13 @@ async function askQuestion(question) {
   return response.result.text;
 }
 
-console.log(
-  await askQuestion(
-    'How many seconds would it take for a leopard at full speed to run through Pont des Arts?',
-  ),
-);
+// Ask the questions
+const questions = [
+  'How many seconds would it take for a leopard at full speed to run through Pont des Arts?',
+  'How many seconds would it take for a leopard tortoise at full speed to run through Pont des Arts?',
+];
+
+for (let i = 0; i < questions.length; i++) {
+  console.log('QUESTION: ' + questions[i]);
+  console.log('  RESPONSE:' + (await askQuestion(questions[i])));
+}
