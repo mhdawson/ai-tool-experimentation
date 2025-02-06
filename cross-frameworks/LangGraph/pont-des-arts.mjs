@@ -1,16 +1,44 @@
 import { ChatOllama } from '@langchain/ollama';
+import { ChatOpenAI } from '@langchain/openai';
 import { Agent } from 'undici';
 import { MemorySaver } from '@langchain/langgraph';
 import { HumanMessage } from '@langchain/core/messages';
 import { createReactAgent } from '@langchain/langgraph/prebuilt';
 import { DuckDuckGoSearch } from '@langchain/community/tools/duckduckgo_search';
+import process from 'node:process';
 
-const OLLAMA_SERVER = 'http://10.1.2.38:11434';
-//const MODEL = 'granite3.1-dense';
-//const MODEL = 'llama3.1';
-//const MODEL = 'qwen2.5-coder:32b';
-const MODEL = 'llama3.1:8b-instruct-q4_K_M';
-const SHOW_AGENT_PROCESS = false;
+const SHOW_AGENT_PROCESS = process.env.SHOW_AGENT_PROCESS
+  ? process.env.SHOW_AGENT_PROCESS !== 'false'
+  : true;
+const TEMPERATURE = process.env.TEMPERATURE
+  ? parseFloat(process.env.TEMPERATURE)
+  : 0;
+const LLM_CLIENT = process.env.LLM_CLIENT || 'ollama';
+
+let defaultServer;
+let defaultModel;
+if (LLM_CLIENT === 'ollama') {
+  defaultServer = 'http://10.1.2.38:11434';
+
+  //defaultModel = 'granite3.1-dense';
+  //defaultModel = 'llama3.1';
+  defaultModel = 'llama3.1:8b-instruct-q4_K_M';
+  //defaultModel = 'qwen2.5-coder:32b';
+} else if (LLM_CLIENT === 'openai') {
+  defaultServer = '';
+
+  defaultModel = 'granite-3-8b-instruct';
+}
+
+const model = process.env.MODEL || defaultModel;
+const server = process.env.SERVER || defaultServer;
+
+if (!(process.env.QUIET === 'true')) {
+  console.log('LLM Client: ' + LLM_CLIENT);
+  console.log('Server: ' + server);
+  console.log('Model: ' + model);
+  console.log('Temperature: ' + TEMPERATURE);
+}
 
 const noTimeoutFetch = (input, init) => {
   const someInit = init || {};
@@ -22,19 +50,31 @@ const noTimeoutFetch = (input, init) => {
 
 /////////////////////////////////////
 // LLM that we'll use
-const llm = new ChatOllama({
-  model: MODEL,
-  baseUrl: OLLAMA_SERVER,
-  temperature: 0,
-});
-llm.client.fetch = noTimeoutFetch;
+let llm;
+if (LLM_CLIENT === 'ollama') {
+  llm = new ChatOllama({
+    model: model,
+    baseUrl: server,
+    temperature: TEMPERATURE,
+  });
+  llm.client.fetch = noTimeoutFetch;
+} else if (LLM_CLIENT === 'openai') {
+  llm = await new ChatOpenAI({
+    model: model,
+    TEMPERATURE: 0,
+    apiKey: process.env.OPENAI_API_KEY,
+    configuration: {
+      baseURL: server,
+    },
+  });
+}
 
 // Create agent
 const agentCheckpointer = new MemorySaver();
 const agent = createReactAgent({
   llm,
   checkpointSaver: agentCheckpointer,
-  tools: [new DuckDuckGoSearch({ maxResults: 3 })],
+  tools: [new DuckDuckGoSearch({ maxResults: 5 })],
 });
 
 // Ask a question using the bee agent framework

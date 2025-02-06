@@ -1,16 +1,45 @@
 import { BeeAgent } from 'bee-agent-framework/agents/bee/agent';
 import { OllamaChatLLM } from 'bee-agent-framework/adapters/ollama/chat';
-//import { OpenAIChatLLM } from 'bee-agent-framework/adapters/openai/chat';
+import { OpenAIChatLLM } from 'bee-agent-framework/adapters/openai/chat';
+import OpenAI from 'openai';
 import { TokenMemory } from 'bee-agent-framework/memory/tokenMemory';
 import { Ollama } from 'ollama';
 import { Agent } from 'undici';
 import { DuckDuckGoSearchTool } from 'bee-agent-framework/tools/search/duckDuckGoSearch';
+import process from 'node:process';
 
-const OLLAMA_SERVER = 'http://10.1.2.38:11434';
-//const MODEL = 'granite3.1-dense';
-const MODEL = 'llama3.1';
-//const MODEL = 'qwen2.5-coder:32b';
-const SHOW_AGENT_PROCESS = true;
+const SHOW_AGENT_PROCESS = process.env.SHOW_AGENT_PROCESS
+  ? process.env.SHOW_AGENT_PROCESS !== 'false'
+  : true;
+const TEMPERATURE = process.env.TEMPERATURE
+  ? parseFloat(process.env.TEMPERATURE)
+  : 0;
+const LLM_CLIENT = process.env.LLM_CLIENT || 'ollama';
+
+let defaultServer;
+let defaultModel;
+if (LLM_CLIENT === 'ollama') {
+  defaultServer = 'http://10.1.2.38:11434';
+
+  defaultModel = 'granite3.1-dense';
+  //defaultModel = 'llama3.1';
+  //defaultModel = 'llama3.1:8b-instruct-q4_K_M';
+  //defaultModel = 'qwen2.5-coder:32b';
+} else if (LLM_CLIENT === 'openai') {
+  defaultServer = '';
+
+  defaultModel = 'granite-3-8b-instruct';
+}
+
+const model = process.env.MODEL || defaultModel;
+const server = process.env.SERVER || defaultServer;
+
+if (!(process.env.QUIET === 'true')) {
+  console.log('LLM Client: ' + LLM_CLIENT);
+  console.log('Server: ' + server);
+  console.log('Model: ' + model);
+  console.log('Temperature: ' + TEMPERATURE);
+}
 
 const noTimeoutFetch = (input, init) => {
   const someInit = init || {};
@@ -22,34 +51,40 @@ const noTimeoutFetch = (input, init) => {
 
 /////////////////////////////////////
 // LLM that we'll use
-const llm = new OllamaChatLLM({
-  modelId: MODEL,
-  parameters: {
-    temperature: 0,
-  },
-  client: new Ollama({
-    host: OLLAMA_SERVER,
-    fetch: noTimeoutFetch,
-  }),
-});
-
-/*
-const llm = new OpenAIChatLLM({
-  modelId: "gpt-4o-mini",
-//  azure: true,
-  parameters: {
-    max_tokens: 10,
-    stop: ["post"],
-  },
-});
-*/
+let llm;
+if (LLM_CLIENT === 'ollama') {
+  llm = new OllamaChatLLM({
+    modelId: model,
+    parameters: {
+      temperature: TEMPERATURE,
+    },
+    client: new Ollama({
+      host: server,
+      fetch: noTimeoutFetch,
+    }),
+  });
+} else if (LLM_CLIENT === 'openai') {
+  llm = new OpenAIChatLLM({
+    client: new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+      baseURL: server,
+    }),
+    modelId: model,
+    parameters: {
+      temperature: TEMPERATURE,
+    },
+  });
+}
 
 // Create agent
 let agent = new BeeAgent({
   llm,
   memory: new TokenMemory({ llm }),
   tools: [
-    new DuckDuckGoSearchTool({ maxResults: 3, throttle: { interval: 1000 } }),
+    new DuckDuckGoSearchTool({
+      maxResults: 5,
+      throttle: { limit: 2, interval: 100 },
+    }),
   ],
 });
 
@@ -61,8 +96,8 @@ async function askQuestion(question) {
       {
         execution: {
           maxRetriesPerStep: 5,
-          totalMaxRetries: 5,
-          maxIterations: 5,
+          totalMaxRetries: 10,
+          maxIterations: 10,
         },
       },
     )
