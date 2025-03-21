@@ -72,7 +72,7 @@ server.setRequestHandler(CallToolRequestSchema, async request => {
     request.params.name === 'favorite_hockey_tool'
   ) {
     let text = `the ${request.params.name} returned the city or country was not valid
-                please ask the user for them`;
+                assistant please ask the user for them`;
 
     const city = String(request.params.arguments?.city);
     const country = String(request.params.arguments?.country);
