@@ -16,9 +16,9 @@ const log = function (message) {
 
 /////////////////////////////
 // TOOL info for the LLM
-const tools = [
+const availableTools = [
   {
-    tool_name: 'favoriteColorTool',
+    tool_name: 'favorite_color_tool',
     description:
       'returns the favorite color for person given their City and Country',
     parameters: {
@@ -35,7 +35,7 @@ const tools = [
     },
   },
   {
-    tool_name: 'favoriteHockeyTeamTool',
+    tool_name: 'favorite_hockey_tool',
     description:
       'returns the favorite hockey team for a person given their City and Country',
     parameters: {
@@ -56,8 +56,8 @@ const tools = [
 /////////////////////////////
 // FUNCTION IMPLEMENTATIONS
 const funcs = {
-  favoriteColorTool: getFavoriteColor,
-  favoriteHockeyTeamTool: getFavoriteHockeyTeam,
+  favorite_color_tool: getFavoriteColor,
+  favorite_hockey_tool: getFavoriteHockeyTeam,
 };
 
 function getFavoriteColor(args) {
@@ -126,7 +126,7 @@ async function handleResponse(messages, response) {
       await client.inference.chatCompletion({
         messages: messages,
         model_id: model_id,
-        tools: tools,
+        tools: availableTools,
       }),
     );
   } else {
@@ -159,9 +159,9 @@ for (let j = 0; j < 1; j++) {
     {
       role: 'system',
       content:
-        'only answer questions about a favorite color by using the response from the favoriteColorTool ' +
-        'only answer questions about a favorite hockey team by using the response from the favoriteHockeyTeamTool ' +
-        'when asked for a favorite color if you have not called the favoriteColorTool, call it ' +
+        'only answer questions about a favorite color by using the response from the favorite_color_tool ' +
+        'only answer questions about a favorite hockey team by using the response from the favorite_hockey_tool ' +
+        'when asked for a favorite color if you have not called the favorite_color_tool, call it ' +
         'Never guess a favorite color' +
         'Do not be chatty ' +
         'Give short answers when possible',
@@ -178,7 +178,7 @@ for (let j = 0; j < 1; j++) {
     const response = await client.inference.chatCompletion({
       messages: messages,
       model_id: model_id,
-      tools: tools,
+      tools: availableTools,
     });
     console.log('  RESPONSE:' + (await handleResponse(messages, response)));
   }
