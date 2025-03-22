@@ -1,4 +1,6 @@
 import LlamaStackClient from 'llama-stack-client';
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { inspect } from 'node:util';
 
 const model_id = 'meta-llama/Llama-3.1-8B-Instruct';
@@ -16,80 +18,45 @@ const log = function (message) {
   }
 };
 
-/////////////////////////////
-// TOOL info for the LLM
-const availableTools = [
+/////////////////////////////////////
+// Start MCP server and get the available tools from the MCP server
+const mcpClient = new Client(
   {
-    tool_name: 'favorite_color_tool',
-    description:
-      'returns the favorite color for person given their City and Country',
-    parameters: {
-      city: {
-        param_type: 'string',
-        description: 'the city for the person',
-        required: true,
-      },
-      country: {
-        param_type: 'string',
-        description: 'the country for the person',
-        required: true,
-      },
-    },
+    name: 'test-client',
+    version: '1.0.0',
   },
   {
-    tool_name: 'favorite_hockey_tool',
-    description:
-      'returns the favorite hockey team for a person given their City and Country',
-    parameters: {
-      city: {
-        param_type: 'string',
-        description: 'the city for the person',
-        required: true,
-      },
-      country: {
-        param_type: 'string',
-        description: 'the country for the person',
-        required: true,
-      },
-    },
+    capabilities: {},
   },
-];
+);
+
+await mcpClient.connect(
+  new StdioClientTransport({
+    command: 'node',
+    args: ['favorite-server/build/index.js'],
+  }),
+);
 
 /////////////////////////////
-// FUNCTION IMPLEMENTATIONS
-const funcs = {
-  favorite_color_tool: getFavoriteColor,
-  favorite_hockey_tool: getFavoriteHockeyTeam,
-};
-
-function getFavoriteColor(args) {
-  const city = args.city;
-  const country = args.country;
-  if (city === 'Ottawa' && country === 'Canada') {
-    return 'the favoriteColorTool returned that the favorite color for Ottawa Canada is black';
-  } else if (city === 'Montreal' && country === 'Canada') {
-    return 'the favoriteColorTool returned that the favorite color for Montreal Canada is red';
-  } else {
-    return `the favoriteColorTool returned The city or country
-            was not valid, assistant please ask the user for them`;
+// convert the description of the tools to the format needed by llama-stack 
+let availableTools = await mcpClient.listTools();
+availableTools = availableTools.tools;
+for (let i = 0; i < availableTools.length; i++) {
+  const tool = availableTools[i];
+  tool.tool_name = tool.name;
+  delete tool.name;
+  tool.parameters = tool.inputSchema.properties;
+  for (const [key, parameter] of Object.entries(tool.parameters)) {
+    parameter.param_type = parameter.type;
+    delete parameter.type;
+    if (tool.inputSchema.required.includes(key)) {
+      parameter.required = true;
+    }
   }
-}
-
-function getFavoriteHockeyTeam(args) {
-  const city = args.city;
-  const country = args.country;
-  if (city === 'Ottawa' && country === 'Canada') {
-    return 'the favoriteHocketTool returned that the favorite hockey team for Ottawa Canada is The Ottawa Senators';
-  } else if (city === 'Montreal' && country === 'Canada') {
-    return 'the favoriteHockeyTool returned that the favorite hockey team for Montreal Canada is the Montreal Canadians';
-  } else {
-    return `the favoriteHockeyTool returned The city or country
-            was not valid, please ask the user for them`;
-  }
+  delete tool.inputSchema;
 }
 
 /////////////////////////////
-// FUNCTION IMPLEMENTATIONS
 // Handle responses which may include a request to run a function
 async function handleResponse(messages, response) {
   // push the models response to the chat
@@ -102,22 +69,22 @@ async function handleResponse(messages, response) {
       // log the function calls so that we see when they are called
       log('  FUNCTION CALLED WITH: ' + inspect(tool));
       console.log('  CALLED:' + tool.tool_name);
-      const func = funcs[tool.tool_name];
-      if (func) {
-        const funcResponse = func(tool.arguments);
-        messages.push({
-          role: 'tool',
-          content: funcResponse,
-          call_id: tool.call_id,
-          tool_name: tool.tool_name,
+      try {
+        const funcResponse = await mcpClient.callTool({
+          name: tool.tool_name,
+          arguments: tool.arguments,
         });
-      } else {
-        messages.push({
-          role: 'tool',
-          call_id: tool.call_id,
-          tool_name: tool.tool_name,
-          content: 'invalid tool called',
-        });
+
+        for (let i = 0; i < funcResponse.content.length; i++) {
+          messages.push({
+            role: 'tool',
+            content: funcResponse.content[i].text,
+            call_id: tool.call_id,
+            tool_name: tool.tool_name,
+          });
+        }
+      } catch (e) {
+        messages.push({ role: 'tool', content: `tool call failed: ${e}` });
       }
     }
 
@@ -183,3 +150,5 @@ for (let j = 0; j < 1; j++) {
     console.log('  RESPONSE:' + (await handleResponse(messages, response)));
   }
 }
+
+mcpClient.close();
