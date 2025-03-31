@@ -54,11 +54,14 @@ await client.toolRuntime.ragTool.insert({
 const agentic_system_create_response = await client.agents.create({
   agent_config: {
     model: model_id,
-    instructions: 'You are a helpful assistant, answer questions only based on information in the documents provided',
-    toolgroups: [ {
-      name: 'builtin::rag/knowledge_search',
-      args: { vector_db_ids: [ vector_db_id ]},   
-    }],
+    instructions:
+      'You are a helpful assistant, answer questions only based on information in the documents provided',
+    toolgroups: [
+      {
+        name: 'builtin::rag/knowledge_search',
+        args: { vector_db_ids: [vector_db_id] },
+      },
+    ],
     tool_choice: 'auto',
     input_shields: [],
     output_shields: [],
@@ -76,9 +79,7 @@ const session_id = sessionCreateResponse.session_id;
 /////////////////////////////
 // ASK QUESTIONS
 
-const questions = [
-  'Is starting Node.js with npm a good idea?',
-];
+const questions = ['Is starting Node.js with npm a good idea?'];
 
 for (let j = 0; j < 1; j++) {
   console.log(
