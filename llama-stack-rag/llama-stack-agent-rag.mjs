@@ -3,13 +3,18 @@ import { inspect } from 'node:util';
 import { randomUUID } from 'node:crypto';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import mtt from 'markdown-to-txt';
 
 const model_id = 'meta-llama/Llama-3.1-8B-Instruct';
+const SHOW_RAG_DOCUMENTS = true;
 
 const client = new LlamaStackClient({
   baseURL: 'http://10.1.2.128:8321',
   timeout: 120 * 1000,
 });
+
+////////////////////////
+// Create the RAG database
 
 // use the first avialable provider
 const provider = (await client.providers.list()).filter(
@@ -36,8 +41,8 @@ for (const file of files) {
   if (file.name.endsWith('.md')) {
     const contents = fs.readFileSync(path.join(file.path, file.name), 'utf8');
     RAGDocuments.push({
-      document_id: `num-${i}`,
-      content: contents,
+      document_id: `doc-${i}`,
+      content: mtt.markdownToTxt(contents),
       mime_type: 'text/plan',
       metadata: {},
     });
@@ -47,10 +52,13 @@ for (const file of files) {
 await client.toolRuntime.ragTool.insert({
   documents: RAGDocuments,
   vector_db_id,
-  chunk_size_in_tokens: 512,
+  chunk_size_in_tokens: 500,
+  overlap_size_in_tokens: 50,
 });
 
+////////////////////////
 // Create the agent
+
 const agentic_system_create_response = await client.agents.create({
   agent_config: {
     model: model_id,
@@ -79,7 +87,7 @@ const session_id = sessionCreateResponse.session_id;
 /////////////////////////////
 // ASK QUESTIONS
 
-const questions = ['Is starting Node.js with npm a good idea?'];
+const questions = ['Should I use npm to start a node.js application'];
 
 for (let j = 0; j < 1; j++) {
   console.log(
@@ -102,8 +110,18 @@ for (let j = 0; j < 1; j++) {
     for await (const chunk of responseStream) {
       if (chunk.event.payload.event_type === 'turn_complete') {
         response = response + chunk.event.payload.turn.output_message.content;
+      } else if (
+        chunk.event.payload.event_type === 'step_complete' &&
+        chunk.event.payload.step_type === 'tool_execution' &&
+        SHOW_RAG_DOCUMENTS
+      ) {
+        console.log(inspect(chunk.event.payload.step_details, { depth: 10 }));
       }
     }
     console.log('  RESPONSE:' + response);
   }
 }
+
+////////////////////////
+// REMOVE DATABASE
+await client.vectorDBs.unregister(vector_db_id);
