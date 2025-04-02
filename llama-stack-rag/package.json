@@ -15,9 +15,9 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node test-mcp.mjs",
     "build": "cd favorite-server && npm isntall && npm run build",
-    "clean": "rm -rf node_modules && rm -rf src/dist && rm -rf favorite-server/build && rm -rf favorite-server/node_modules",
-    "format:check": "prettier --check \"**/src/**/*.{ts,js}\" \"*.{ts,js,mjs}\"",
-    "format:fix": "prettier --write \"**/src/**/*.{ts,js}\" \"*.{ts,js,mjs}\"",
+    "clean": "rm -rf node_modules",
+    "format:check": "prettier --check \"*.{ts,js,mjs}\"",
+    "format:fix": "prettier --write \"*.{ts,js,mjs}\"",
     "lint:check": "eslint . --cache",
     "lint:fix": "eslint . --cache --fix"
   },
