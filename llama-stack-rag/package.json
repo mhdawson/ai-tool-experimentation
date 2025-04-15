@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "llama-stack-client": "^0.1.8",
+    "llama-stack-client": "^0.2.2",
     "lodash": "^4.17.21",
     "markdown-to-txt": "^2.0.1",
     "prettier": "^3.4.2",

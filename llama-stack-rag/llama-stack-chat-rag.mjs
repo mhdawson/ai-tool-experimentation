@@ -1,16 +1,24 @@
 import LlamaStackClient from 'llama-stack-client';
-import { inspect } from 'node:util';
 import { randomUUID } from 'node:crypto';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import mtt from 'markdown-to-txt';
 
-const model_id = 'meta-llama/Llama-3.1-8B-Instruct';
-const SHOW_RAG_DOCUMENTS = true;
+const model_id = 'meta-llama/Llam-3.1-8B-instruct-q4_K_M';
+const SHOW_RAG_DOCUMENTS = false;
 
 const client = new LlamaStackClient({
   baseURL: 'http://10.1.2.128:8321',
   timeout: 120 * 1000,
+});
+
+////////////////////////
+// Register the model we would like to use from ollama
+client.models.register({
+  model_id,
+  provider_id: 'ollama',
+  provider_model_id: 'llama3.1:8b-instruct-q4_K_M',
+  model_type: 'llm',
 });
 
 ////////////////////////
@@ -85,6 +93,10 @@ for (let j = 0; j < 1; j++) {
     const ragResults = [];
     for (let j = 0; j < rawRagResults.content.length; j++) {
       ragResults.push(rawRagResults.content[j].text);
+    }
+
+    if (SHOW_RAG_DOCUMENTS) {
+      console.log(ragResults.join());
     }
 
     const prompt = `Answer the question based only on the context provided
