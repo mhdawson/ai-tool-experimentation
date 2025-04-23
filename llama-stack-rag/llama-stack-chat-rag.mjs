@@ -4,7 +4,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import mtt from 'markdown-to-txt';
 
-const model_id = 'meta-llama/Llam-3.1-8B-instruct-q4_K_M';
+const model_id = 'meta-llama/Llama-3.1-8B-instruct-q4_K_M';
 const SHOW_RAG_DOCUMENTS = false;
 
 const client = new LlamaStackClient({
