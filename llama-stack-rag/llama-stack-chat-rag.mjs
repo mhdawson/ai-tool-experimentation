@@ -24,7 +24,7 @@ client.models.register({
 ////////////////////////
 // Create the RAG database
 
-// use the first avialable provider
+// use the first available provider
 const provider = (await client.providers.list()).filter(
   provider => provider.api === 'vector_io',
 )[0];
