@@ -11,7 +11,7 @@ const client = new LlamaStackClient({
 
 ////////////////////////
 // Register the additional model we would like to use from ollama
-client.models.register({
+await client.models.register({
   model_id: 'meta-llama/Llama-Guard-3-8B',
   provider_id: 'ollama',
   provider_model_id: 'llama-guard3:8b',
