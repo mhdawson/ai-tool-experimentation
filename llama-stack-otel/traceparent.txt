@@ -1,0 +1,3 @@
+        { headers: {
+          traceparent: `00-${span.spanContext().traceId}-${span.spanContext().spanId}-01`},
+        },
